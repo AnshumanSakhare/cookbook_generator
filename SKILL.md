@@ -81,6 +81,7 @@ Write markdown cells that explain without marketing. Follow these rules:
 - For model-unique features, include one sentence explaining *why* the feature matters and one sentence on typical use cases.
 - Use `> ⚠️` blockquotes for environment warnings (e.g., Computer Use, API keys, display requirements).
 - The header cell's table of contents must number every section including model-unique ones, so the full notebook scope is visible at a glance.
+- **No em dashes**: Never use em dashes (-) in generated markdown cells. Use a regular hyphen (-) or reword the sentence instead.
 
 **NEVER** generate cells that:
 - Hallucinate SDK class names, method signatures, or parameter names not found in the provided documentation
