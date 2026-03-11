@@ -1,0 +1,16 @@
+{
+  "name": "twitter-post-generator-rayso",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local ray.so snippet generator for the twitter-post-generator skill",
+  "main": "generate-rayso-snippet.js",
+  "scripts": {
+    "generate": "node generate-rayso-snippet.js"
+  },
+  "dependencies": {
+    "puppeteer": "^22.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

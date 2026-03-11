@@ -1,104 +1,236 @@
 ---
-name: cookbook_generator
-description: Generate a complete, production-grade Jupyter Notebook cookbook for any newly released LLM. Use this skill when a user provides a model name, documentation link, or release notes and wants a structured developer cookbook (.ipynb) generated automatically. Produces runnable, well-organized notebooks covering setup, basic usage, framework integration, agents, and advanced features. Works from a natural language query and a docs link — no JSON payload required.
+name: twitter-post-generator
+description: Write Twitter/X posts in this account's builder voice, especially for AI product news, model launches, code snippets, use-case posts, comparisons, roundups, and rewrites that must match existing account style. Use when asked to draft, refine, rewrite, or critique tweets/X posts so they sound like this account instead of generic AI marketing copy.
 ---
 
-This skill guides the generation of a complete, developer-ready **LLM Cookbook Jupyter Notebook** for any newly released language model. It is model-agnostic, framework-independent, and works with any agent or assistant capable of reading documentation and writing files.
+# Twitter Post Generator
 
-The user provides a query describing the model — typically a model name, a documentation URL, release notes, or a short description of key features. The skill reads that information, infers the API surface, and produces a structured `.ipynb` file that a developer can open, run, and learn from immediately.
+Write like a builder talking to another builder.
 
-## Planning the Cookbook
+Load [references/voice-rules.md](references/voice-rules.md) first.
+Load [references/account-examples.md](references/account-examples.md) when matching tone, cadence, hook patterns, or deciding whether a draft feels native to the account.
+Load [references/cookbook-workflow.md](references/cookbook-workflow.md) when the request includes a model launch, cookbook, notebook, release notes, or docs.
+If the request needs a code snippet image, use the bundled script in `scripts/generate-rayso-snippet.js`.
 
-Before generating any cells, read and understand the model context:
-- **Model identity**: What is the exact API model string? Is there a Pro or variant tier? Who is the provider?
-- **API surface**: What SDK does it use? How is the client initialized? What are the key method signatures for chat, streaming, and tool use?
-- **Unique capabilities**: What does this model do that others don't? Examples: thinking/reasoning mode, computer use, massive context windows, multimodal input, built-in web search. Each unique capability gets its own dedicated section.
-- **Framework compatibility**: Which LangChain chat class wraps this model? Is there a native agents SDK?
-- **Constraints**: Are any features environment-dependent (e.g., computer use requires a desktop), require special permissions, or are experimental? Those cells must be commented out with a clear warning.
+## Local Code Snippet Generator
 
-**CRITICAL**: Read the documentation link before generating. Do not invent API method names, parameter names, or SDK classes. Every code cell must reflect the actual API surface described in the docs or query. If a certain pattern is not documented, do not generate it.
+The skill is self-contained for code snippet images.
 
-## Notebook Structure
+Before first use, install dependencies in `.agents/skills/twitter-post-generator/scripts/`:
 
-Every generated notebook follows this canonical section order. Do not deviate from it. Model-specific sections are appended after Section 4, never inserted between standard sections.
+```powershell
+cd .agents\skills\twitter-post-generator\scripts
+npm install
+```
 
-**Header cell** — A markdown title cell with the model name, release date, a feature summary as bullet points, and a numbered table of contents listing all sections including model-unique ones.
+Generate snippet images with:
 
-**Section 0 — Setup & Installation** — One `!pip install` code cell with all required packages. One configuration cell importing `os`, setting the API key environment variable as a placeholder (`"sk-..."`), and defining `MODEL = "{model_string}"` as the single source of truth used throughout all cells.
+```powershell
+node .agents\skills\twitter-post-generator\scripts\generate-rayso-snippet.js `
+  --file path\to\snippet.ts `
+  --language typescript `
+  --theme gemini `
+  --title "Gemini Embedding 2" `
+  --output content\twitter-drafts\2026-03-11-gemini-embedding-2\2026-03-11-gemini-embedding-2-code-post.png
+```
 
-**Section 1 — Basic Usage with {Provider} SDK** — Four subsections, each a markdown title cell followed by one code cell:
-- 1.1 Chat Completions API — basic `messages=[...]` request, print response
-- 1.2 Responses API or equivalent single-turn variant, if the provider offers one; otherwise skip
-- 1.3 Multi-turn Conversation — a 2-turn loop that appends assistant and user messages
-- 1.4 Streaming Responses — `stream=True` iteration over chunks; if the model has a thinking/reasoning stream, show it in a dimmed color alongside the final answer
+## Output Bundle
 
-**Section 2 — Framework Integration** — LangChain or the provider's own framework SDK. Four subsections:
-- 2.1 Basic chat call using the framework wrapper class (e.g. `ChatOpenAI`, `ChatAnthropic`)
-- 2.2 Prompt templates and chains using `ChatPromptTemplate` piped to the LLM
-- 2.3 Structured output using Pydantic `BaseModel` and `.with_structured_output()`
-- 2.4 Tool calling using `@tool` decorator, `bind_tools()`, and checking `response.tool_calls`
+For model launches or multi-asset requests, create one dedicated bundle folder in `content/twitter-drafts/`.
 
-**Section 3 — Building Agents** — Six standard subsections plus one model-specific placeholder:
-- 3.1 Basic agent with 2 function tools; run with a sample query
-- 3.2 Multi-agent handoffs: 3 specialist agents plus a triage agent that routes between them
-- 3.3 Agents as tools: subagents exposed via `.as_tool()` to an orchestrator
-- 3.4 Agent with input guardrails that block off-topic queries; show both allowed and blocked cases
-- 3.5 Agent with built-in web search and file search tools
-- 3.6 Framework agent using LangGraph `create_agent` or equivalent
-- 3.7 Placeholder for the model's most distinctive agentic capability (e.g. Native Computer Use); comment out the code and include environment setup instructions
+Use this pattern:
+- `content/twitter-drafts/YYYY-MM-DD-topic/`
 
-**Section 4 — Advanced Applications** — Seven standard subsections plus one per unique model capability:
-- 4.1 Structured output via the native SDK (e.g. `client.chat.completions.parse()`)
-- 4.2 Function calling using raw JSON schema tool definitions; parse and print tool call results
-- 4.3 RAG pipeline using a `FakeRetriever`, `ChatPromptTemplate`, and `StrOutputParser`
-- 4.4 Content generation pipeline: 2-step sequential chain (generate ideas → write final output)
-- 4.5 Async batch processing using `AsyncClient` and `asyncio.gather()` over a list of prompts
-- 4.6 Multimodal input: pass an image URL and text together; include a commented Option B for base64 local files
-- 4.7 JSON mode: `response_format={"type": "json_object"}`; parse with `json.loads()`
-- 4.8+ One subsection per model-unique feature inferred from docs: markdown explanation cell followed by a runnable code cell; comment out anything requiring special setup
+Put all related outputs for that request inside the same folder:
+- tweet draft markdown files
+- code snippet PNG files
+- cookbook notebook `.ipynb`
 
-**Footer cell** — A quick-reference markdown table covering all key model strings, API patterns, SDK calls, and parameters used throughout the notebook. End with an attribution line crediting the documentation source and the generation date.
+For simple one-off rewrites, you may still write directly into `content/twitter-drafts/`. For new model release work, prefer a bundle folder every time.
 
-## Code Style Guidelines
+## Workflow
 
-Write code cells that a developer can run without modification, except for replacing the API key placeholder. Follow these rules precisely:
+1. Identify the single job of the post.
 
-- **Use `MODEL`** everywhere as the constant. Never hardcode the model string in any cell other than the configuration cell in Section 0.
-- **Comment out alternatives**: If the model has a Pro or variant tier, include it as a commented-out line directly below the active model constant.
-- **Wrap error-prone calls**: Use `try/except` only at natural failure boundaries — JSON parsing with `json.loads()`, structured output parsing, and any call that may return an unexpected type. Do not add defensive error handling to straightforward API calls.
-- **Async cells**: Define an `async def main()` function and end the cell with `# await main()`. Do not call `asyncio.run()` inline — this breaks Jupyter kernels.
-- **Environment-dependent features**: If a feature requires OS access, a display, a vector store ID, or special permissions, comment out the entire code block and prepend a `# ⚠️ WARNING:` comment explaining the requirement.
-- **One concept per cell**: Do not combine unrelated API patterns in a single code cell. Each cell should demonstrate one thing clearly.
-- **No hardcoded secrets**: API keys must always be `"sk-..."` or read from `os.environ`. Never include real credentials.
-- **No `eval()`**: Use `ast.literal_eval()` for safe expression evaluation, or a dedicated math/expression parser. Never use raw `eval()` on any string.
+Choose one:
+- reactive news take
+- first reaction to a new model
+- code snippet post
+- use case / cookbook post
+- comparison post
+- roundup
+- rewrite of an existing draft
 
-## Content Guidelines
+Do not merge multiple jobs into one post unless the user explicitly asks for that.
 
-Write markdown cells that explain without marketing. Follow these rules:
+2. Extract the few facts that matter.
 
-- Keep each markdown cell to 1–3 sentences. If more context is needed, use a short bullet list.
-- Name the specific feature or method being demonstrated. Do not write vague intros like "In this section, we will explore...".
-- For model-unique features, include one sentence explaining *why* the feature matters and one sentence on typical use cases.
-- Use `> ⚠️` blockquotes for environment warnings (e.g., Computer Use, API keys, display requirements).
-- The header cell's table of contents must number every section including model-unique ones, so the full notebook scope is visible at a glance.
-- **No em dashes**: Never use em dashes (-) in generated markdown cells. Use a regular hyphen (-) or reword the sentence instead.
+For product or model posts, pull only the details builders care about:
+- exact model or product name
+- concrete capability change
+- pricing, context, speed, or reliability if available
+- one implication for someone shipping code
+- one caveat if it matters
 
-**NEVER** generate cells that:
-- Hallucinate SDK class names, method signatures, or parameter names not found in the provided documentation
-- Include working API keys or real credentials
-- Mix unrelated patterns in a single code cell to save space
-- Reorder the standard sections (0 through 4.7 must always appear in order)
-- Skip the quick-reference footer table
+Ignore benchmark theater, marketing adjectives, and background filler.
 
-## Example Usage
+3. Pick a format before writing.
 
-A user invokes this skill with a query like:
+Use the smallest format that fits:
+- `news + builder take` for most announcements
+- `code snippet` when there is code, SDK usage, or an implementation angle
+- `i tried x` when there is direct testing or hands-on feedback
+- `comparison` when one dimension is being compared
+- `roundup` for grouped updates
+- `resource drop` when pointing to a cookbook, repo, or demo
 
-> *"Generate a cookbook for Claude Opus 5. Docs: https://docs.anthropic.com/en/api/"*
+If the request is about a newly released model, treat it as a bundle unless the user explicitly asks for only one asset.
 
-or
+4. Generate the code snippet image when the post is a code post.
 
-> *"New model just dropped: Gemini 2.5 Pro with 1M context and thinking mode. Here are the release notes: [paste]. Make a cookbook."*
+For any `code snippet` post:
+- run `scripts/generate-rayso-snippet.js`
+- generate the PNG instead of only describing the visual
+- save the PNG in the request bundle folder when one exists
+- use a matching filename stem for the markdown file and the PNG
 
-The skill reads the docs link or release notes, infers the SDK (`anthropic`, `google-generativeai`, etc.), the chat class (`ChatAnthropic`, `ChatGoogleGenerativeAI`), the API key variable name, all relevant method signatures, and any unique capabilities. It then generates the complete `.ipynb` file named `{model_name}_cookbook.ipynb` following the structure above — no JSON payload, no manual field filling required.
+Preferred pattern:
+- markdown: `content/twitter-drafts/YYYY-MM-DD-topic/YYYY-MM-DD-topic-code-post.md`
+- image: `content/twitter-drafts/YYYY-MM-DD-topic/YYYY-MM-DD-topic-code-post.png`
 
+Pass the snippet content, language, title, and preferred output path to the Rayso workflow.
+Use sensible defaults unless the user specifies otherwise:
+- theme: `gemini`
+- dark mode: `true`
+- background: `true`
+- padding: `32`
+
+If the user provides code, use it as-is unless it is clearly malformed for presentation.
+If the user asks for a code post but does not provide code, write the post draft and clearly note that the PNG is pending source code.
+
+5. Generate the cookbook notebook when needed.
+
+For model launches, cookbook drops, or any request that mentions docs, release notes, or a notebook:
+- generate a Jupyter notebook `.ipynb`
+- save it in the same bundle folder as the tweets and PNG
+- use a filename like `topic-cookbook.ipynb`
+- follow `references/cookbook-workflow.md`
+
+Never invent SDK method names or parameters.
+If the user supplied a docs link or release notes, use those as the source of truth.
+If the cookbook cannot be safely completed because the API surface is unclear, keep the tweets grounded and state what source material is missing.
+
+6. Save the draft to a markdown file.
+
+Create a new markdown file for every generation in the bundle folder when one exists. Otherwise use `content/twitter-drafts/`.
+
+Use a meaningful hyphen-case filename that captures the topic and format.
+Preferred pattern:
+- `YYYY-MM-DD-topic-format.md`
+
+Keep the markdown draft, PNG, and notebook in the same folder for bundled requests. Do not create a nested `assets/` folder for tweet outputs.
+
+Examples:
+- `2026-03-11-gemini-embedding-2-reaction.md`
+- `2026-03-11-gemini-embedding-2-code-post.md`
+- `2026-03-11-openai-promptfoo-comparison.md`
+- `gemini-embedding-2-cookbook.ipynb`
+
+Inside the file, include:
+- `#` title with the topic
+- `## Post`
+- the final post text
+- `## Visual`
+- generated PNG path in the same folder, or `pending` if code was not supplied
+- `## Cookbook`
+- notebook path in the same folder, or `not requested`
+- `## Reply Link`
+- `## Notes` for angle, caveats, or why this version works
+
+If multiple options are requested, put them in the same file as:
+- `## Option 1`
+- `## Option 2`
+- `## Option 3`
+
+7. Write in the account voice.
+
+Apply these rules every time:
+- lead with the news, observation, or takeaway
+- use short lines and short sentences
+- keep the tone grounded, direct, and mildly opinionated
+- sound like a practitioner, not a journalist or creator
+- keep one clear idea per post
+- mention the builder implication explicitly
+- keep links out of the main post unless the user overrides the account strategy
+
+8. Match what the account actually does.
+
+Prefer these account patterns:
+- opening with the product or model name, then the concrete change
+- collapsing specs into a practical implication
+- using a sharp last line as the take
+- using lowercase naturally
+- using lists only when they add scan value
+- ending with a cookbook, demo, or code asset only when it is real
+
+Avoid patterns the account does not want:
+- grand claims like "game-changing" or "revolutionary"
+- corporate throat-clearing
+- fake certainty
+- broad "best model" claims without a task
+- thread-like density in a single post
+
+## Output Rules
+
+When drafting, always create the markdown file first, then return:
+- the file path
+- the main post text
+- `visual:` with the generated image path for code posts, otherwise the recommended asset type
+- `cookbook:` with the notebook path when one was generated
+- `reply link:` only if the post should have a first-reply link
+
+For code posts, do not stop at a recommendation like `code snippet image`.
+Actually generate the PNG through the bundled script when the environment allows it.
+
+When giving multiple options, vary the angle, not just the wording.
+Good variation axes:
+- stack replacement
+- implication for builders
+- honest test
+- comparison on one dimension
+- contrarian observation
+
+When rewriting a weak draft:
+- keep the core fact
+- remove hype
+- compress to one idea
+- replace abstract language with a concrete builder takeaway
+
+## Model Release Handling
+
+For new model launches, create one bundle folder and write separate posts inside it in this order:
+1. first reaction
+2. SDK/code snippet
+3. concrete use case or cookbook
+4. comparison on one dimension
+5. notebook cookbook if requested or implied by the workflow
+
+Do not combine all four into one post.
+
+For comparisons:
+- compare only one dimension per post
+- state whether the comparison is from testing or from published specs
+- never declare a universal winner
+
+## Final Check
+
+Reject or rewrite the draft if any of these are true:
+- the first line is generic
+- the post sounds like it came from the official brand account
+- there is no builder takeaway
+- more than one main idea is competing
+- hype words carry the sentence
+- the post could have been written about any product
+
+If the user gives source material, stay faithful to it.
+If facts are missing, state the gap or write a version that avoids unsupported claims.

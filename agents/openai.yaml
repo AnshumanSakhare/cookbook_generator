@@ -1,0 +1,4 @@
+interface:
+  display_name: "Twitter Post Generator"
+  short_description: "Write builder-style AI/dev X posts"
+  default_prompt: "Use $twitter-post-generator to draft an X post in this account's voice from my source material."
